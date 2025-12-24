@@ -2,6 +2,7 @@ package com.nurturepersonal.nurturepersonal.repo;
 
 import com.nurturepersonal.nurturepersonal.entity.PaymentTransfersInfo;
 import com.nurturepersonal.nurturepersonal.enums.PaymentType;
+import com.nurturepersonal.nurturepersonal.helper.PayoutFileFormat;
 import com.nurturepersonal.nurturepersonal.service.PaymentTransfersInfoService;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -16,5 +17,9 @@ public interface PaymentTransfersInfoRepository extends JpaRepository<PaymentTra
     @Query(value = "select app_order_id from payment_transfers_info where payment_type in (:paymentType) and enterprise_id != 3 and reversal_against_id is null and status in ('processed','Created') and app_order_id in\n" +
             "(:orderIDs)",nativeQuery = true)
     List<String> payoutCreatedOrderIDsForSeller(@Param("orderIDs") List<String> orderIDs, @Param("paymentType") String paymentType);
+
+    @Query(value = "select app_order_id as appOrderID, payment_id as paymentID,amount_transferred*100 as amount, enterprise_id as EnterpriseID from payment_transfers_info where payment_type = :paymentType and app_order_id in\n" +
+            "(:orderIDs) GROUP BY app_order_id",nativeQuery = true)
+    List<PayoutFileFormat> createPayoutCheckout(@Param("paymentType") String paymentType, @Param("orderIDs") List<String> orderIDs);
 
 }

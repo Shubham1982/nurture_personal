@@ -4,6 +4,7 @@ import com.nurturepersonal.nurturepersonal.enums.PaymentType;
 import com.nurturepersonal.nurturepersonal.service.PaymentTransfersInfoService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -21,8 +22,14 @@ public class PaymentRelatedResource {
     public String paymentTrasferNotCreated(@RequestBody List<String> orderIDs, @PathVariable(value = "paymentType") String paymentType) {
         return paymentTransfersInfoService.paymentTrasferNotCreated(orderIDs, paymentType);
     }
-//    @GetMapping("/payment/trasfers/not")
-//    public List<String> paymentTrasferNotCreatedDemo(@RequestBody List<String> orderIDs) {
-//        return orderIDs;
-//    }
+
+    @PostMapping("/failed/payout/output/file")
+    public ResponseEntity<String> failedPayout(@RequestPart (value = "file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body("File is empty");
+        }
+        paymentTransfersInfoService.processExcel(file);
+        return ResponseEntity.ok("Excel export successfully");
+
+    }
 }
