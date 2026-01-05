@@ -7,12 +7,16 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.lang.NonNull;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -26,6 +30,8 @@ public class paymentTransfersInfoServiceImpl implements PaymentTransfersInfoServ
     public paymentTransfersInfoServiceImpl(PaymentTransfersInfoRepository paymentTransfersInfoRepository) {
         this.paymentTransfersInfoRepository = paymentTransfersInfoRepository;
     }
+
+    String basicSystemPath = "/Users/shubhamgore/Downloads/Daily Payout Failed Cases/";
 
     @Override
     public String paymentTrasferNotCreated(List<String> orderIDs, String paymentType) {
@@ -98,10 +104,18 @@ public class paymentTransfersInfoServiceImpl implements PaymentTransfersInfoServ
 
         String todayDate = getTodayDate();
         List<String> validPayoutPaymentType = Arrays.asList("0", "2", "4");
-        String filePath = "/home/lt-444/Downloads/Daily Payout Failed Cases/" + todayDate + "_output.xlsx";
 
-        try (Workbook workbook = new XSSFWorkbook();
-             FileOutputStream fos = new FileOutputStream(filePath)) {
+        Path dateFolderPath = Paths.get(basicSystemPath, todayDate);
+
+        String filePath = dateFolderPath + "/" + todayDate + "_output.xlsx";
+
+        try  {
+            //Create folder
+            if (!Files.exists(dateFolderPath)) {
+                Files.createDirectories(dateFolderPath);
+            }
+            Workbook workbook = new XSSFWorkbook();
+            FileOutputStream fos = new FileOutputStream(filePath);
 
             Sheet sheet = workbook.createSheet("Filtered Orders");
 
@@ -116,7 +130,7 @@ public class paymentTransfersInfoServiceImpl implements PaymentTransfersInfoServ
                 String paymentType = entry.getKey();
                 //Only for the payment type 0 2 4
                 if (validPayoutPaymentType.contains(paymentType))
-                    payoutFileBuilder(paymentType, entry.getValue());
+                    payoutFileBuilder(paymentType, entry.getValue(),dateFolderPath);
 
                 for (String orderId : entry.getValue()) {
                     Row row = sheet.createRow(rowNum++);
@@ -136,7 +150,7 @@ public class paymentTransfersInfoServiceImpl implements PaymentTransfersInfoServ
     }
 
     @Async
-    protected void payoutFileBuilder(String paymentType, List<String> orderIds) {
+    protected void payoutFileBuilder(String paymentType, List<String> orderIds, Path dateFolderPath) {
         StringBuilder builderFileName = new StringBuilder();
         List<PayoutFileFormat> payout = paymentTransfersInfoRepository.createPayoutCheckout(paymentType, orderIds);
         List<String> appOrderIds = payout.stream()
@@ -163,7 +177,7 @@ public class paymentTransfersInfoServiceImpl implements PaymentTransfersInfoServ
                 throw new RuntimeException("Payout type " + paymentType + " not supported");
         }
 
-        String filePath = "/home/lt-444/Downloads/Daily Payout Failed Cases/" + builderFileName + "_" + getTodayDate() + "_output.xlsx";
+        String filePath = dateFolderPath + "/" + builderFileName + "_" + getTodayDate() + "_output.xlsx";
 
         try (Workbook workbook = new XSSFWorkbook();
              FileOutputStream fos = new FileOutputStream(filePath)) {
